@@ -1,14 +1,10 @@
 
 docker.image('cloudbees/java-build-tools:1.0.0').inside {
     checkout scm
-    def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
 
     stage 'Build Web App'
-    wrap([$class: 'ConfigFileBuildWrapper',
-        managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
-
-        sh "mvn -s ${mavenSettingsFile} clean package"
-
+    withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
+        sh "mvn clean package"
         step([$class: 'ArtifactArchiver', artifacts: 'gameoflife-web/target/*.war'])
     }
 }
@@ -78,15 +74,11 @@ docker.image('cloudbees/java-build-tools:1.0.0').inside {
 
 stage 'Web Browser tests'
 retry(3) { // web browser tests are fragile, test up to 3 times
-    docker.image('cloudbees/java-build-tools:0.0.6').inside {
-        def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
-        wrap([$class: 'ConfigFileBuildWrapper',
-            managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
-
+    docker.image('cloudbees/java-build-tools:1.0.0').inside {
+       withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
             sh """
-
                 cd gameoflife-acceptance-tests
-                mvn -B -V -s ${mavenSettingsFile} verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-ecs.beesshop.org
+                mvn verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-ecs.beesshop.org
             """
         }
     }

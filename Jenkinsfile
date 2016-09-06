@@ -9,16 +9,12 @@ properties([
 
 docker.image('cloudbees/java-build-tools:1.0.0').inside {
 
-
-    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/CloudBees-community/game-of-life']]])
-
-    def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
+    checkout scm
 
     stage 'Build'
-    wrap([$class: 'ConfigFileBuildWrapper',
-        managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
+    withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
 
-        sh "mvn -s ${mavenSettingsFile} clean source:jar javadoc:javadoc checkstyle:checkstyle pmd:pmd findbugs:findbugs package -DskipTests"
+        sh "mvn clean source:jar javadoc:javadoc checkstyle:checkstyle pmd:pmd findbugs:findbugs package -DskipTests"
 
         step([$class: 'ArtifactArchiver', artifacts: 'gameoflife-web/target/*.war'])
         step([$class: 'WarningsPublisher', consoleParsers: [[parserName: 'Maven']]])
@@ -53,16 +49,16 @@ docker.image('registry.access.redhat.com/jboss-eap-7/eap70-openshift').inside {
   def destinationWarFile = "gameoflife-${env.BUILD_NUMBER}.war"
   def versionLabel = "game-of-life#${env.BUILD_NUMBER}"
   def description = "${env.BUILD_URL}"
-  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) { 
-    sh "/opt/eap/bin/jboss-cli.sh --controller=jboss.beesshop.org:9990 --connect --user=${env.username} --password=${env.password} --command='deploy gameoflife-web/target/gameoflife.war --force --name=gameoflife-qa'" 
+  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) {
+    sh "/opt/eap/bin/jboss-cli.sh --controller=jboss.beesshop.org:9990 --connect --user=${env.username} --password=${env.password} --command='deploy gameoflife-web/target/gameoflife.war --force --name=gameoflife-qa'"
   }
-  
+
   sleep 10L // wait for JBOSS to update the status
 
   //Check for correct deployment
  timeout(time: 5, unit: 'MINUTES') {
       waitUntil {
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) { 
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) {
           sh "/opt/eap/bin/jboss-cli.sh --controller=jboss.beesshop.org:9990 --connect --user=a${env.username} --password=${env.password} --command='ls /deployment=gameoflife-qa'> .jboss-status"
         }
         // parse  output
@@ -81,17 +77,13 @@ node {
     // web browser tests are fragile, test up to 3 times
     retry(3) {
         docker.image('cloudbees/java-build-tools:1.0.0').inside {
-            def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
-
-            wrap([$class: 'ConfigFileBuildWrapper',
-                managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
-
+           withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
                 sh """\
                    # debug info
                    # curl http://jboss.beesshop.org/gameoflife
                    # curl -v http://localhost:4444/wd/hub
                    cd gameoflife-acceptance-tests
-                   mvn -B -V -s ${mavenSettingsFile} verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://jboss.beesshop.org/gameoflife
+                   mvn verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://jboss.beesshop.org/gameoflife
                 """
             }
         }
@@ -106,16 +98,16 @@ docker.image('registry.access.redhat.com/jboss-eap-7/eap70-openshift').inside {
   def destinationWarFile = "gameoflife-${env.BUILD_NUMBER}.war"
   def versionLabel = "game-of-life#${env.BUILD_NUMBER}"
   def description = "${env.BUILD_URL}"
-  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) { 
-    sh "/opt/eap/bin/jboss-cli.sh --controller=jboss.beesshop.org:9990 --connect --user=${env.username} --password=${env.password} --command='deploy gameoflife-web/target/gameoflife.war --force --name=gameoflife-prod' " 
+  withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) {
+    sh "/opt/eap/bin/jboss-cli.sh --controller=jboss.beesshop.org:9990 --connect --user=${env.username} --password=${env.password} --command='deploy gameoflife-web/target/gameoflife.war --force --name=gameoflife-prod' "
   }
-  
+
   sleep 10L // wait for JBOSS to update the status
 
   //Check for correct deployment
  timeout(time: 5, unit: 'MINUTES') {
       waitUntil {
-        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) { 
+        withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'jboss-ec2', passwordVariable: 'password', usernameVariable: 'username']]) {
           sh "/opt/eap/bin/jboss-cli.sh --controller=jboss.beesshop.org:9990 --connect --user=a${env.username} --password=${env.password} --command='ls /deployment=gameoflife-prod'> .jboss-status"
         }
         // parse  output

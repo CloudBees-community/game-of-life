@@ -10,13 +10,10 @@ docker.image('cloudbees/java-build-tools:1.0.0').inside {
 
     checkout scm
 
-    def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
-
     stage 'Build'
-    wrap([$class: 'ConfigFileBuildWrapper',
-        managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
+    withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
 
-        sh "mvn -s ${mavenSettingsFile} clean source:jar javadoc:javadoc checkstyle:checkstyle pmd:pmd findbugs:findbugs package"
+        sh "mvn clean source:jar javadoc:javadoc checkstyle:checkstyle pmd:pmd findbugs:findbugs package"
 
         step([$class: 'ArtifactArchiver', artifacts: 'gameoflife-web/target/*.war'])
         step([$class: 'WarningsPublisher', consoleParsers: [[parserName: 'Maven']]])
@@ -83,10 +80,9 @@ node {
     // web browser tests are fragile, test up to 3 times
     retry(3) {
         docker.image('cloudbees/java-build-tools:1.0.0').inside {
-            def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
 
-            wrap([$class: 'ConfigFileBuildWrapper',
-                managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
+        withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
+
 
                 sh """\
                    # debug info
@@ -94,7 +90,7 @@ node {
                    # curl -v http://localhost:4444/wd/hub
 
                    cd gameoflife-acceptance-tests
-                   mvn -B -V -s ${mavenSettingsFile} verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://game-of-life-qa.elasticbeanstalk.com/
+                   mvn verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://game-of-life-qa.elasticbeanstalk.com/
                 """
             }
         }

@@ -41,7 +41,7 @@ node {
                    # curl -v http://localhost:4444/wd/hub
                    # tree .
                    cd gameoflife-acceptance-tests
-                   mvn verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/
+                   mvn verify -DtestFailureIgnore=true -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/
                 """
             }
         }

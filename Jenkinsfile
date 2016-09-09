@@ -24,8 +24,8 @@ docker.image('cloudbees/java-build-tools:1.0.0').inside {
 }
 
 stage 'Test Web App with Selenium'
-mail body: "Start web browser tests on http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/ ?", subject: "Start web browser tests on http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/ ?", to: 'cleclerc@cloudbees.com'
-input "Start web browser tests on http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/ ?"
+mail body: "Start web browser tests on http://gameoflife-dev.cfapps-02.haas-26.pez.pivotal.io/ ?", subject: "Start web browser tests on http://gameoflife-dev.cfapps-02.haas-26.pez.pivotal.io/ ?", to: 'cleclerc@cloudbees.com'
+input "Start web browser tests on http://gameoflife-dev.cfapps-02.haas-26.pez.pivotal.io/ ?"
 
 checkpoint 'Web Browser Tests'
 
@@ -37,11 +37,11 @@ node {
         docker.image('cloudbees/java-build-tools:1.0.0').inside {
           withMaven(mavenSettingsConfig: 'maven-settings-for-gameoflife') {
                 sh """
-                   # curl http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/
+                   # curl http://gameoflife-dev.cfapps-02.haas-26.pez.pivotal.io/
                    # curl -v http://localhost:4444/wd/hub
                    # tree .
                    cd gameoflife-acceptance-tests
-                   mvn verify -DtestFailureIgnore=true -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-dev.run-02.haas-26.pez.pivotal.io/
+                   mvn verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-dev.cfapps-02.haas-26.pez.pivotal.io/
                 """
             }
         }

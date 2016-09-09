@@ -1,4 +1,11 @@
 #!groovy
+
+properties([
+   [$class: 'BuildDiscarderProperty',
+      strategy: [$class: 'LogRotator', numToKeepStr: '5', artifactNumToKeepStr: '5']
+   ]
+])
+
 docker.image('cloudbees/java-build-tools:1.0.0').inside {
 
     checkout scm

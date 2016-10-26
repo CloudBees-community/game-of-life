@@ -15,39 +15,29 @@ node ("linux") {
     def war="gameoflife.war"
     def target="/site/wwwroot/webapps"
 
-    ensureMaven()
-
     stage "Checkout"
     git branch: 'azure-pipeline', url: 'https://github.com/harniman/game-of-life'
 
     stage "Build"
 
-    sh "mvn clean package"
+    withEnv(["PATH=${tool 'maven-3.3'}/bin:${env.PATH}"]) {
+        sh 'mvn clean package'
+    }
     
     stage "Deploy to Azure"
 
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', 
+    withCredentials([[$class: 'UsernamePasswordBinding', 
         credentialsId: 'azure-deployment-id', 
-        passwordVariable: '_password', 
-        usernameVariable: '_user']]) {
+        variable: '_userpass']]) {
 
-        sh "curl -T ${local_path}/${war} ftps://\"${env._user}\":${env._password}@${env.azureHost}${target}/"
+        sh "curl -T ${local_path}/${war} ftps://\"\$_userpass\"@\$azureHost${target}/"
     }
     
     stage "Verify deployment"
     
-    retry(count: 5) { 
+    retry(5) { 
         echo "Checking for the application at ${env.svchost}/gameoflife"
-        sh "sleep 5 && curl -f ${env.svchost}/gameoflife"
+        sh 'sleep 5 && curl -f $svchost/gameoflife'
     }
 
 }
-
-def ensureMaven() {
-    env.PATH = "${tool 'maven-3.3'}/bin:${env.PATH}"
-}
-
-
-
-
-

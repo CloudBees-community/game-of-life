@@ -30,7 +30,7 @@ node ("linux") {
         credentialsId: 'azure-deployment-id', 
         variable: '_userpass']]) {
 
-        sh "curl -T ${local_path}/${war} ftps://\"\$env._userpass\"@\$azureHost${target}/"
+        sh "curl -T ${local_path}/${war} ftps://\"\$_userpass\"@\$azureHost${target}/"
     }
     
     stage "Verify deployment"

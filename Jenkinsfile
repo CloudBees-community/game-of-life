@@ -35,7 +35,7 @@ node ("linux") {
     
     stage "Verify deployment"
     
-    retry(count: 5) { 
+    retry(5) { 
         echo "Checking for the application at ${env.svchost}/gameoflife"
         sh 'sleep 5 && curl -f $svchost/gameoflife'
     }

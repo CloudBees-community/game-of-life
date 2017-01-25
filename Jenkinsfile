@@ -2,19 +2,20 @@
 docker.image('cloudbees/java-build-tools:1.0.1').inside {
 
     checkout scm
-    def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
 
     stage 'Build Web App'
-    wrap([$class: 'ConfigFileBuildWrapper',
-        managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
 
-        sh "mvn -s ${mavenSettingsFile} -DaltSnapshotDeploymentRepository=nexus.beescloud.com::default::https://nexus.beescloud.com/content/repositories/snapshots clean source:jar deploy"
+    withMaven(
+            mavenSettingsConfig: 'maven-settings-for-gameoflife',
+            mavenLocalRepo: '.repository') {
+
+        sh "mvn -DaltSnapshotDeploymentRepository=nexus.beescloud.com::default::https://nexus.beescloud.com/content/repositories/snapshots clean source:jar deploy"
     }
 
     stage 'Deploy Web App On CloudFoundry'
     wrap([$class: 'CloudFoundryCliBuildWrapper',
         cloudFoundryCliVersion: 'Cloud Foundry CLI (built-in)',
-        apiEndpoint: 'https://api.hackney.cf-app.com',
+        apiEndpoint: 'https://api.run-02.haas-26.pez.pivotal.io',
         skipSslValidation: true,
         credentialsId: 'pcf-elastic-runtime-credentials',
         organization: 'cloudbees',
@@ -27,8 +28,8 @@ docker.image('cloudbees/java-build-tools:1.0.1').inside {
 }
 
 stage 'Test Web App with Selenium'
-mail body: "Start web browser tests on http://gameoflife-dev.hackney.cf-app.com/ ?", subject: "Start web browser tests on http://gameoflife-dev.hackney.cf-app.com/ ?", to: 'cleclerc@cloudbees.com'
-input "Start web browser tests on http://gameoflife-dev.hackney.cf-app.com/ ?"
+mail body: "Start web browser tests on http://gameoflife-dev.cfapps.pie-23.cfplatformeng.com/ ?", subject: "Start web browser tests on http://gameoflife-dev.cfapps.pie-23.cfplatformeng.com/ ?", to: 'cleclerc@cloudbees.com'
+input "Start web browser tests on http://gameoflife-dev.cfapps.pie-23.cfplatformeng.com/ ?"
 
 checkpoint 'Web Browser Tests'
 
@@ -37,18 +38,15 @@ node {
 
     // web browser tests are fragile, test up to 3 times
     retry(3) {
-        docker.image('cloudbees/java-build-tools:0.0.5').inside {
-            def mavenSettingsFile = "${pwd()}/.m2/settings.xml"
+        docker.image('cloudbees/java-build-tools:1.0.1').inside {
 
-            wrap([$class: 'ConfigFileBuildWrapper',
-                managedFiles: [[fileId: 'maven-settings-for-gameoflife', targetLocation: "${mavenSettingsFile}"]]]) {
+          withMaven(
+                  mavenSettingsConfig: 'maven-settings-for-gameoflife',
+                  mavenLocalRepo: '.repository') {
 
                 sh """
-                   # curl http://gameoflife-dev.hackney.cf-app.com/
-                   # curl -v http://localhost:4444/wd/hub
-                   # tree .
                    cd gameoflife-acceptance-tests
-                   mvn -B -V -s ${mavenSettingsFile} verify -Dwebdriver.driver=remote -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-dev.hackney.cf-app.com/
+                   mvn verify -Dwebdriver.driver=remote -Dwebdriver.remote.driver=firefox -Dwebdriver.remote.url=http://localhost:4444/wd/hub -Dwebdriver.base.url=http://gameoflife-dev.cfapps.pie-23.cfplatformeng.com/
                 """
             }
         }
